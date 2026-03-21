@@ -3,7 +3,7 @@
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
-import { claimAdminAction } from "@/app/actions/admin";
+import { claimAdminAction, seedTeamsAction } from "@/app/actions/admin";
 
 export default function AdminExportPage() {
   const { data: session, status, update } = useSession();
@@ -12,6 +12,7 @@ export default function AdminExportPage() {
     "idle" | "loading" | "error"
   >("idle");
   const [claimPending, startClaimTransition] = useTransition();
+  const [seedPending, startSeedTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
 
   const isAdmin = session?.user?.isAdmin ?? false;
@@ -117,6 +118,28 @@ export default function AdminExportPage() {
             className="rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {downloadState === "loading" ? "Preparing…" : "Download CSV"}
+          </button>
+          <button
+            type="button"
+            disabled={seedPending}
+            onClick={() => {
+              setMessage(null);
+              startSeedTransition(async () => {
+                const res = await seedTeamsAction();
+                if (!res.ok) {
+                  setMessage("Seed failed: unauthorized.");
+                  return;
+                }
+                setMessage(
+                  res.inserted > 0
+                    ? `Seeded ${res.inserted} team${res.inserted === 1 ? "" : "s"} (${res.skipped} already existed).`
+                    : `All ${res.skipped} teams already exist — nothing to do.`,
+                );
+              });
+            }}
+            className="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {seedPending ? "Seeding…" : "Seed teams"}
           </button>
           <Link
             href="/enroll"

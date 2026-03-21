@@ -46,12 +46,12 @@ export default async function Home() {
           UXD · Vibe coding
         </p>
         <h1 className="mt-5 max-w-2xl font-serif text-4xl font-semibold leading-tight text-[var(--ink)] sm:text-5xl">
-          Enroll in a team for semester assignments and final project.
+          Team Enrollment
         </h1>
         <p className="mt-6 max-w-xl text-pretty text-lg text-[var(--muted)]">
-          Create an account with your name, @thi.de email, and a password—then
-          pick a team. Three seats per team; when yours is full, it is ready for
-          the instructor roster export.
+          Create an account with your @thi.de email.
+          Log in to enroll in a team for semester assignments and final project.
+          Three seats per team.
         </p>
 
         <div className="mt-10 flex flex-col gap-4">

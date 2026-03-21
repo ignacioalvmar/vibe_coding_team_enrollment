@@ -49,16 +49,16 @@ export default {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
-        const dbUser = await getUserById(Number(user.id));
-        token.isAdmin = dbUser?.isAdmin ?? false;
       }
       if (trigger === "update" && session && typeof session === "object") {
         const s = session as { name?: string };
         if (typeof s.name === "string") token.name = s.name;
       }
-      if (trigger === "update" && token.id) {
+      // Always sync isAdmin from DB so changes made directly in Supabase
+      // (or via claimAdminAction) are reflected without requiring a re-login.
+      if (token.id) {
         const dbUser = await getUserById(Number(token.id));
-        if (dbUser) token.isAdmin = dbUser.isAdmin;
+        token.isAdmin = dbUser?.isAdmin ?? false;
       }
       return token;
     },

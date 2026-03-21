@@ -14,6 +14,7 @@ export default async function EnrollPage() {
   if (!email) redirect("/");
 
   const displayName = session?.user?.name?.trim() || null;
+  const isAdmin = Boolean(session?.user?.isAdmin);
 
   const [teams, current] = await Promise.all([
     listTeamsWithEnrolled(),
@@ -26,6 +27,7 @@ export default async function EnrollPage() {
       current={current}
       email={email}
       displayName={displayName}
+      isAdmin={isAdmin}
     />
   );
 }

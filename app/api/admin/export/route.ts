@@ -1,4 +1,6 @@
+import { auth } from "@/auth";
 import { listEnrollmentsForExport } from "@/lib/enrollment";
+import { getUserById } from "@/lib/users";
 import { NextResponse } from "next/server";
 
 function escapeCsvField(value: string) {
@@ -8,12 +10,17 @@ function escapeCsvField(value: string) {
   return value;
 }
 
-export async function GET(request: Request) {
-  const secret = process.env.ADMIN_EXPORT_SECRET;
-  const authz = request.headers.get("authorization");
-  const token = authz?.startsWith("Bearer ") ? authz.slice(7) : null;
-  if (!secret || token !== secret) {
+export async function GET() {
+  const session = await auth();
+  const rawId = session?.user?.id;
+  const userId =
+    typeof rawId === "string" ? Number(rawId) : typeof rawId === "number" ? rawId : NaN;
+  if (!Number.isFinite(userId)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const dbUser = await getUserById(userId);
+  if (!dbUser?.isAdmin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const rows = await listEnrollmentsForExport();

@@ -1,4 +1,5 @@
 import {
+  boolean,
   integer,
   pgTable,
   serial,
@@ -12,6 +13,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
+  isAdmin: boolean("is_admin").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });

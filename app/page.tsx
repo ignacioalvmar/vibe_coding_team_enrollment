@@ -17,14 +17,14 @@ const cards: { title: string; body: ReactNode }[] = [
     title: "For instructors",
     body: (
       <>
-        Export rosters anytime from the{" "}
+        Course staff sign in, then open the{" "}
         <Link
           href="/admin"
           className="font-semibold text-[var(--accent)] underline-offset-4 hover:underline"
         >
-          admin export page
-        </Link>
-        .
+          admin page
+        </Link>{" "}
+        to claim access with the deployment secret and download CSV rosters.
       </>
     ),
   },

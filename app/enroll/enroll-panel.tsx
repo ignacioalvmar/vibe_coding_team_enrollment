@@ -13,6 +13,7 @@ type Props = {
   current: { teamId: number; teamName: string } | null;
   email: string;
   displayName: string | null;
+  isAdmin: boolean;
 };
 
 /** Visual themes from the Gemini regional card draft — cycled by team index. */
@@ -43,7 +44,7 @@ const CARD_THEMES = [
   },
 ] as const;
 
-export function EnrollPanel({ teams, current, email, displayName }: Props) {
+export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
@@ -149,32 +150,34 @@ export function EnrollPanel({ teams, current, email, displayName }: Props) {
               </svg>
               Profile
             </Link>
-            <Link
-              href="/admin"
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
-            >
-              <svg
-                className="h-4 w-4 opacity-90"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden
+            {isAdmin ? (
+              <Link
+                href="/admin"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                />
-              </svg>
-              Export teams
-            </Link>
+                <svg
+                  className="h-4 w-4 opacity-90"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Export teams
+              </Link>
+            ) : null}
             <button
               type="button"
               onClick={() => void signOut({ callbackUrl: "/" })}
               className="rounded-full border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-800 shadow-sm transition hover:bg-neutral-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
             >
-              Reset
+              Sign out
             </button>
           </div>
         </header>

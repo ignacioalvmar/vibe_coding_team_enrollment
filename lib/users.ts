@@ -132,3 +132,17 @@ export async function updateUserPassword(
     .returning({ id: users.id });
   return updated.length > 0;
 }
+
+/** Sets admin flag after server-side verification of ADMIN_EXPORT_SECRET. */
+export async function grantAdminForUser(userId: number): Promise<boolean> {
+  const db = getDb();
+  const updated = await db
+    .update(users)
+    .set({
+      isAdmin: true,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .returning({ id: users.id });
+  return updated.length > 0;
+}

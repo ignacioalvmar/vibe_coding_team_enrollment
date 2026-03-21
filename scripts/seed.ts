@@ -105,6 +105,11 @@ main()
           "If DATABASE_URL is set in your OS or terminal, that value wins over `.env`—unset it or keep them identical.",
       );
     }
+    if (pgCode === "42P01") {
+      console.error(
+        '\nTable or schema missing (42P01). Apply the Drizzle schema first: npm run db:push',
+      );
+    }
     console.error(err);
     process.exit(1);
   });

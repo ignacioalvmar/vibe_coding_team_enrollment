@@ -32,6 +32,13 @@ if (!url) {
   throw new Error("DATABASE_URL is not set");
 }
 
+try {
+  const { hostname, port } = new URL(url);
+  console.log(`[seed] Connecting to ${hostname}:${port || "5432"}`);
+} catch {
+  // non-standard URL format — skip diagnostic
+}
+
 const queryClient = postgres(url, { prepare: false, max: 1 });
 const db = drizzle(queryClient, { schema });
 const { teams } = schema;

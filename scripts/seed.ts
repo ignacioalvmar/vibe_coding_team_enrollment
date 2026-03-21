@@ -1,15 +1,39 @@
-import "dotenv/config";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { config, parse } from "dotenv";
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
 import { eq } from "drizzle-orm";
 import * as schema from "../lib/db/schema";
+
+const envPath = join(process.cwd(), ".env");
+let urlFromFile: string | undefined;
+try {
+  urlFromFile = parse(readFileSync(envPath, "utf8")).DATABASE_URL;
+} catch {
+  urlFromFile = undefined;
+}
+const inheritedUrl = process.env.DATABASE_URL;
+/** Same rule as drizzle-kit: existing `DATABASE_URL` wins; dotenv does not override by default. */
+if (
+  urlFromFile &&
+  inheritedUrl !== undefined &&
+  urlFromFile !== inheritedUrl
+) {
+  console.warn(
+    "[seed] DATABASE_URL in the environment differs from `.env`. " +
+      "The environment value is used (same as drizzle-kit). Unset DATABASE_URL in the shell/OS, or make both identical.",
+  );
+}
+config({ path: envPath });
 
 const url = process.env.DATABASE_URL;
 if (!url) {
   throw new Error("DATABASE_URL is not set");
 }
 
-const db = drizzle(neon(url), { schema });
+const queryClient = postgres(url, { prepare: false, max: 1 });
+const db = drizzle(queryClient, { schema });
 const { teams } = schema;
 
 const seedTeams = [
@@ -69,7 +93,18 @@ async function main() {
   console.log("Seed complete.");
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+main()
+  .then(() => queryClient.end({ timeout: 5 }))
+  .catch((err) => {
+    const wrapped = err as { cause?: { code?: string } };
+    const pgCode = wrapped?.cause?.code;
+    if (pgCode === "28P01") {
+      console.error(
+        "\nSupabase rejected the database password (28P01). Reset it under Project Settings → Database, " +
+          "then paste the full URI from Connect → Transaction pooler (no space after `=`). " +
+          "If DATABASE_URL is set in your OS or terminal, that value wins over `.env`—unset it or keep them identical.",
+      );
+    }
+    console.error(err);
+    process.exit(1);
+  });

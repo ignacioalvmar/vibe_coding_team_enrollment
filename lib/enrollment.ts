@@ -41,7 +41,7 @@ export async function listTeamsWithEnrolled(): Promise<TeamWithEnrolled[]> {
     FROM teams t
     ORDER BY t.sort_order ASC, t.id ASC
   `);
-  return rows.rows.map((r) => ({
+  return rows.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
@@ -98,7 +98,7 @@ export async function joinOrMoveTeam(
       ) < t.capacity
     RETURNING id
   `);
-  if (inserted.rows.length > 0) {
+  if (inserted.length > 0) {
     return { ok: true, kind: "joined" };
   }
 
@@ -123,7 +123,7 @@ export async function joinOrMoveTeam(
       ) < t.capacity
     RETURNING e.id
   `);
-  if (updated.rows.length > 0) {
+  if (updated.length > 0) {
     return { ok: true, kind: "moved" };
   }
 

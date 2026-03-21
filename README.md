@@ -6,7 +6,7 @@ Next.js app for **UXD Vibe coding**: students enter a `@thi.de` email (format ch
 
 - **Next.js 16** (App Router) + TypeScript + Tailwind CSS v4  
 - **Auth.js v5** (`next-auth`) with a **credentials** provider: session after a valid `@thi.de` address (no password, no identity proof — honor system)  
-- **Drizzle ORM** + **Neon serverless** driver (any Postgres `DATABASE_URL`, including Vercel Postgres)
+- **Drizzle ORM** + **postgres.js** (works with **Supabase** Postgres and any `DATABASE_URL`)
 
 ## Local setup
 
@@ -48,7 +48,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Deploy on Vercel
 
-1. Create a **Vercel Postgres** (or Neon) database and copy `DATABASE_URL`.  
+1. Create a **Supabase** project, open **Project Settings → Database**, and copy the **URI** (use the **Transaction pooler** string for serverless). Set it as `DATABASE_URL` in Vercel.  
 2. Import the GitHub repo as a new Vercel project.  
 3. Set all variables from `.env.example` in **Project → Settings → Environment Variables**.  
 4. Redeploy. From your machine (with `DATABASE_URL` pointing at production), run:

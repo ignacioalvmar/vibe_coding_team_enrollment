@@ -7,7 +7,7 @@ import { EmailSignInForm } from "@/app/email-sign-in-form";
 const cards: { title: string; body: ReactNode }[] = [
   {
     title: "Who can join",
-    body: "Anyone in the course with a THI email address (@thi.de). No password — we only check the address format.",
+    body: "Anyone in the course with a THI email (@thi.de). You sign in with that email and the password you choose.",
   },
   {
     title: "What you pick",
@@ -46,11 +46,12 @@ export default async function Home() {
           UXD · Vibe coding
         </p>
         <h1 className="mt-5 max-w-2xl font-serif text-4xl font-semibold leading-tight text-[var(--ink)] sm:text-5xl">
-          Enroll in your project team for the semester studio.
+          Enroll in a team for semester assignments and final project.
         </h1>
         <p className="mt-6 max-w-xl text-pretty text-lg text-[var(--muted)]">
-          Enter your THI email to continue. Teams have three seats each; when
-          yours is full, it is ready for the instructor roster export.
+          Create an account with your name, @thi.de email, and a password—then
+          pick a team. Three seats per team; when yours is full, it is ready for
+          the instructor roster export.
         </p>
 
         <div className="mt-10 flex flex-col gap-4">

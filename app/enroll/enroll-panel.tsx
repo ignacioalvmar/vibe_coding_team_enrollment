@@ -12,6 +12,7 @@ type Props = {
   teams: TeamWithEnrolled[];
   current: { teamId: number; teamName: string } | null;
   email: string;
+  displayName: string | null;
 };
 
 /** Visual themes from the Gemini regional card draft — cycled by team index. */
@@ -42,7 +43,7 @@ const CARD_THEMES = [
   },
 ] as const;
 
-export function EnrollPanel({ teams, current, email }: Props) {
+export function EnrollPanel({ teams, current, email, displayName }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
@@ -103,7 +104,12 @@ export function EnrollPanel({ teams, current, email }: Props) {
             <p className="mt-2 text-xs font-semibold uppercase tracking-[0.35em] text-neutral-500 dark:text-[var(--muted)]">
               Team enrollment portal
             </p>
-            <p className="mt-4 max-w-xl break-all font-mono text-xs text-neutral-600 dark:text-[var(--muted)]">
+            {displayName ? (
+              <p className="mt-4 text-sm font-semibold text-neutral-900 dark:text-[var(--ink)]">
+                {displayName}
+              </p>
+            ) : null}
+            <p className="mt-2 max-w-xl break-all font-mono text-xs text-neutral-600 dark:text-[var(--muted)]">
               {email}
             </p>
             {current ? (
@@ -123,6 +129,26 @@ export function EnrollPanel({ teams, current, email }: Props) {
             )}
           </div>
           <div className="flex flex-wrap gap-3">
+            <Link
+              href="/profile"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-neutral-300 bg-white px-5 py-2.5 text-sm font-semibold text-neutral-800 shadow-sm transition hover:bg-neutral-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
+            >
+              <svg
+                className="h-4 w-4 opacity-90"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              Profile
+            </Link>
             <Link
               href="/admin"
               className="inline-flex items-center justify-center gap-2 rounded-full bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-neutral-800 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-white"
@@ -168,6 +194,30 @@ export function EnrollPanel({ teams, current, email }: Props) {
           >
             {error}
           </p>
+        ) : null}
+
+        {teams.length === 0 ? (
+          <div
+            className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-6 text-sm text-amber-950 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-100"
+            role="status"
+          >
+            <p className="font-semibold">No teams are set up yet.</p>
+            <p className="mt-2 leading-relaxed text-amber-900/90 dark:text-amber-100/90">
+              The database has no team rows. After deploying, run{" "}
+              <code className="rounded bg-amber-100/80 px-1.5 py-0.5 font-mono text-xs dark:bg-amber-900/50">
+                npm run db:push
+              </code>{" "}
+              then{" "}
+              <code className="rounded bg-amber-100/80 px-1.5 py-0.5 font-mono text-xs dark:bg-amber-900/50">
+                npm run db:seed
+              </code>{" "}
+              against the same{" "}
+              <code className="rounded bg-amber-100/80 px-1.5 py-0.5 font-mono text-xs dark:bg-amber-900/50">
+                DATABASE_URL
+              </code>{" "}
+              as Vercel (Project Settings → Environment Variables).
+            </p>
+          </div>
         ) : null}
 
         <ul className="mt-10 grid grid-cols-1 gap-8 md:grid-cols-2 xl:grid-cols-4">

@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { enrollments, teams } from "@/lib/db/schema";
 
@@ -21,33 +21,26 @@ function normalizeEmail(email: string) {
 
 export async function listTeamsWithEnrolled(): Promise<TeamWithEnrolled[]> {
   const db = getDb();
-  const rows = await db.execute<{
-    id: number;
-    name: string;
-    description: string | null;
-    capacity: number;
-    sort_order: number;
-    enrolled: number;
-  }>(sql`
-    SELECT
-      t.id,
-      t.name,
-      t.description,
-      t.capacity,
-      t.sort_order,
-      COALESCE((
-        SELECT COUNT(*)::int FROM enrollments e WHERE e.team_id = t.id
-      ), 0) AS enrolled
-    FROM teams t
-    ORDER BY t.sort_order ASC, t.id ASC
-  `);
+  const rows = await db
+    .select({
+      id: teams.id,
+      name: teams.name,
+      description: teams.description,
+      capacity: teams.capacity,
+      sortOrder: teams.sortOrder,
+      enrolled: count(enrollments.id),
+    })
+    .from(teams)
+    .leftJoin(enrollments, eq(enrollments.teamId, teams.id))
+    .groupBy(teams.id)
+    .orderBy(teams.sortOrder, teams.id);
   return rows.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
     capacity: r.capacity,
-    sortOrder: r.sort_order,
-    enrolled: r.enrolled,
+    sortOrder: r.sortOrder,
+    enrolled: Number(r.enrolled),
   }));
 }
 

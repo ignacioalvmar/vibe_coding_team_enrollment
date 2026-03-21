@@ -6,6 +6,16 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  email: text("email").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -24,5 +34,6 @@ export const enrollments = pgTable("enrollments", {
   enrolledAt: timestamp("enrolled_at", { withTimezone: true }).defaultNow(),
 });
 
+export type User = typeof users.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;

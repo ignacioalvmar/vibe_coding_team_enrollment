@@ -9,7 +9,15 @@ let cached: Database | undefined;
 
 /** Supabase pooler (transaction mode) does not support prepared statements; `prepare: false` matches their Drizzle guidance. */
 function createClient(url: string) {
-  return postgres(url, { prepare: false, max: 1 });
+  return postgres(url, {
+    prepare: false,
+    max: 3,
+    connect_timeout: 60,
+    connection: {
+      /** ms; avoids default server timeouts (e.g. cold Supabase) killing simple joins */
+      statement_timeout: 60_000,
+    },
+  });
 }
 
 export function getDb(): Database {

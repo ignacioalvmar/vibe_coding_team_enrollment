@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -37,14 +38,20 @@ export const teams = pgTable("teams", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
-export const enrollments = pgTable("enrollments", {
-  id: serial("id").primaryKey(),
-  teamId: integer("team_id")
-    .notNull()
-    .references(() => teams.id, { onDelete: "cascade" }),
-  studentEmail: text("student_email").notNull().unique(),
-  enrolledAt: timestamp("enrolled_at", { withTimezone: true }).defaultNow(),
-});
+export const enrollments = pgTable(
+  "enrollments",
+  {
+    id: serial("id").primaryKey(),
+    teamId: integer("team_id")
+      .notNull()
+      .references(() => teams.id, { onDelete: "cascade" }),
+    studentEmail: text("student_email").notNull().unique(),
+    enrolledAt: timestamp("enrolled_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => ({
+    teamIdIdx: index("enrollments_team_id_idx").on(table.teamId),
+  }),
+);
 
 export type User = typeof users.$inferSelect;
 export type Team = typeof teams.$inferSelect;

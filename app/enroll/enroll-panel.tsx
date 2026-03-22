@@ -158,7 +158,7 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
         <header className="mb-12 flex flex-col items-center justify-between gap-6 pt-4 md:mb-16 md:flex-row md:items-start">
           <div className="text-center md:text-left">
             <h1
-              className={`bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-4xl font-extrabold tracking-tighter text-transparent sm:text-5xl md:text-6xl lg:text-7xl ${syne.className}`}
+              className={`bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-[36px] font-extrabold tracking-tighter text-transparent ${syne.className}`}
             >
               UXD Vibecoding · SS26
             </h1>
@@ -192,36 +192,59 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
             )}
           </div>
 
-          <div className="flex flex-wrap justify-center gap-3 md:justify-end">
-            {isAdmin ? (
-              <>
-                <Link
-                  href="/admin"
-                  className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition hover:bg-cyan-600"
+          <div className="flex w-full flex-col items-stretch gap-4 md:items-end">
+            <div className="flex flex-wrap justify-center gap-3 md:justify-end">
+              {isAdmin ? (
+                <>
+                  <Link
+                    href="/admin"
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition hover:bg-cyan-600"
+                  >
+                    Export teams
+                  </Link>
+                  <Link
+                    href="/admin/teams"
+                    className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
+                  >
+                    Team setup
+                  </Link>
+                </>
+              ) : null}
+              <Link
+                href="/profile"
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
+              >
+                Profile
+              </Link>
+              <button
+                type="button"
+                onClick={() => void signOut({ callbackUrl: "/" })}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-500 transition hover:text-red-500 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--muted)]"
+              >
+                Sign out
+              </button>
+            </div>
+            <div className="flex w-full flex-row flex-wrap items-center gap-4 border-t border-slate-200 pt-6 dark:border-[var(--border)] md:max-w-xl md:justify-end">
+              <div className="min-w-0 flex-1 md:flex-none md:text-right">
+                <h3
+                  className={`text-lg font-semibold text-slate-900 dark:text-[var(--ink)] ${syne.className}`}
                 >
-                  Export teams
-                </Link>
-                <Link
-                  href="/admin/teams"
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
-                >
-                  Team setup
-                </Link>
-              </>
-            ) : null}
-            <Link
-              href="/profile"
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
-            >
-              Profile
-            </Link>
-            <button
-              type="button"
-              onClick={() => void signOut({ callbackUrl: "/" })}
-              className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-500 transition hover:text-red-500 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--muted)]"
-            >
-              Sign out
-            </button>
+                  Need to step back?
+                </h3>
+                <p className="mt-2 max-w-prose text-sm text-slate-600 dark:text-[var(--muted)]">
+                  Leave your current team if you want to pick another while seats are
+                  open.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={!current || pending}
+                onClick={() => onLeave()}
+                className="shrink-0 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
+              >
+                Leave team
+              </button>
+            </div>
           </div>
         </header>
 
@@ -461,26 +484,6 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
             );
           })}
         </ul>
-
-        <div className="mt-14 border-t border-slate-200 pt-10 dark:border-[var(--border)]">
-          <h3
-            className={`text-lg font-semibold text-slate-900 dark:text-[var(--ink)] ${syne.className}`}
-          >
-            Need to step back?
-          </h3>
-          <p className="mt-2 max-w-prose text-sm text-slate-600 dark:text-[var(--muted)]">
-            Leave your current team if you want to pick another while seats are
-            open.
-          </p>
-          <button
-            type="button"
-            disabled={!current || pending}
-            onClick={() => onLeave()}
-            className="mt-4 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"
-          >
-            Leave team
-          </button>
-        </div>
       </div>
     </div>
   );

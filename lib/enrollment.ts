@@ -31,26 +31,54 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+/** SQLSTATE 57014 — statement timeout (e.g. cold DB); one retry after a short backoff */
+function postgresErrorCode(err: unknown): string | undefined {
+  if (err && typeof err === "object") {
+    const e = err as { code?: string; cause?: unknown };
+    if (typeof e.code === "string") return e.code;
+    const c = e.cause;
+    if (c && typeof c === "object" && "code" in c) {
+      const code = (c as { code?: string }).code;
+      if (typeof code === "string") return code;
+    }
+  }
+  return undefined;
+}
+
+async function withStatementTimeoutRetry<T>(run: () => Promise<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (err) {
+    if (postgresErrorCode(err) === "57014") {
+      await new Promise((r) => setTimeout(r, 500));
+      return await run();
+    }
+    throw err;
+  }
+}
+
 export async function listTeamsWithEnrolled(): Promise<TeamWithEnrolled[]> {
   const db = getDb();
-  const rows = await db
-    .select({
-      id: teams.id,
-      name: teams.name,
-      description: teams.description,
-      region: teams.region,
-      vibe: teams.vibe,
-      accent: teams.accent,
-      imageUrl: teams.imageUrl,
-      nameOptions: teams.nameOptions,
-      capacity: teams.capacity,
-      sortOrder: teams.sortOrder,
-      enrolled: count(enrollments.id),
-    })
-    .from(teams)
-    .leftJoin(enrollments, eq(enrollments.teamId, teams.id))
-    .groupBy(teams.id)
-    .orderBy(teams.sortOrder, teams.id);
+  const rows = await withStatementTimeoutRetry(() =>
+    db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        description: teams.description,
+        region: teams.region,
+        vibe: teams.vibe,
+        accent: teams.accent,
+        imageUrl: teams.imageUrl,
+        nameOptions: teams.nameOptions,
+        capacity: teams.capacity,
+        sortOrder: teams.sortOrder,
+        enrolled: count(enrollments.id),
+      })
+      .from(teams)
+      .leftJoin(enrollments, eq(enrollments.teamId, teams.id))
+      .groupBy(teams.id)
+      .orderBy(teams.sortOrder, teams.id),
+  );
   return rows.map((r) => ({
     id: r.id,
     name: r.name,

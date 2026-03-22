@@ -53,18 +53,32 @@ function toUpsert(t: TeamAdminRow): TeamUpsertInput {
   };
 }
 
+const TEAM_NAME_RULE_MSG =
+  "Display name must exactly match one of the three name options.";
+
 function TeamForm({
   initial,
   onCancel,
   onSave,
   submitLabel,
+  inlineError,
+  onClearInlineError,
 }: {
   initial: TeamUpsertInput;
   onCancel: () => void;
   onSave: (input: TeamUpsertInput) => void;
   submitLabel: string;
+  inlineError?: string | null;
+  onClearInlineError?: () => void;
 }) {
   const [form, setForm] = useState<TeamUpsertInput>(initial);
+
+  function patchForm(
+    updater: (prev: TeamUpsertInput) => TeamUpsertInput,
+  ): void {
+    onClearInlineError?.();
+    setForm(updater);
+  }
 
   return (
     <div className="mt-3 grid gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]/50 p-4 text-sm">
@@ -74,9 +88,23 @@ function TeamForm({
           <input
             className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
             value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onChange={(e) =>
+              patchForm((f) => ({ ...f, name: e.target.value }))
+            }
           />
         </label>
+        <label className="block">
+          <span className="text-[var(--muted)]">Region</span>
+          <input
+            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
+            value={form.region ?? ""}
+            onChange={(e) =>
+              patchForm((f) => ({ ...f, region: e.target.value || null }))
+            }
+          />
+        </label>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
         <label className="block">
           <span className="text-[var(--muted)]">Sort order</span>
           <input
@@ -84,19 +112,10 @@ function TeamForm({
             className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
             value={form.sortOrder}
             onChange={(e) =>
-              setForm((f) => ({ ...f, sortOrder: Number(e.target.value) || 0 }))
-            }
-          />
-        </label>
-      </div>
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label className="block">
-          <span className="text-[var(--muted)]">Region</span>
-          <input
-            className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
-            value={form.region ?? ""}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, region: e.target.value || null }))
+              patchForm((f) => ({
+                ...f,
+                sortOrder: Number(e.target.value) || 0,
+              }))
             }
           />
         </label>
@@ -106,7 +125,7 @@ function TeamForm({
             className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
             value={form.vibe ?? ""}
             onChange={(e) =>
-              setForm((f) => ({ ...f, vibe: e.target.value || null }))
+              patchForm((f) => ({ ...f, vibe: e.target.value || null }))
             }
           />
         </label>
@@ -117,7 +136,7 @@ function TeamForm({
           className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 font-mono text-[var(--ink)]"
           value={form.accent ?? ""}
           onChange={(e) =>
-            setForm((f) => ({ ...f, accent: e.target.value || null }))
+            patchForm((f) => ({ ...f, accent: e.target.value || null }))
           }
         />
       </label>
@@ -127,7 +146,7 @@ function TeamForm({
           className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
           value={form.imageUrl ?? ""}
           onChange={(e) =>
-            setForm((f) => ({ ...f, imageUrl: e.target.value || null }))
+            patchForm((f) => ({ ...f, imageUrl: e.target.value || null }))
           }
         />
       </label>
@@ -139,7 +158,7 @@ function TeamForm({
             className="rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
             value={form.nameOptions[i] ?? ""}
             onChange={(e) =>
-              setForm((f) => {
+              patchForm((f) => {
                 const next = [...f.nameOptions];
                 next[i] = e.target.value;
                 return { ...f, nameOptions: next };
@@ -155,7 +174,10 @@ function TeamForm({
           className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
           value={form.description ?? ""}
           onChange={(e) =>
-            setForm((f) => ({ ...f, description: e.target.value || null }))
+            patchForm((f) => ({
+              ...f,
+              description: e.target.value || null,
+            }))
           }
         />
       </label>
@@ -167,10 +189,21 @@ function TeamForm({
           className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--ink)]"
           value={form.capacity}
           onChange={(e) =>
-            setForm((f) => ({ ...f, capacity: Number(e.target.value) || 1 }))
+            patchForm((f) => ({
+              ...f,
+              capacity: Number(e.target.value) || 1,
+            }))
           }
         />
       </label>
+      {inlineError ? (
+        <p
+          className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-100"
+          role="alert"
+        >
+          {inlineError}
+        </p>
+      ) : null}
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
@@ -201,6 +234,8 @@ export function TeamsAdminPanel({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
+  const [teamEditError, setTeamEditError] = useState<string | null>(null);
+  const [createFormError, setCreateFormError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
   const [moveEmail, setMoveEmail] = useState("");
@@ -266,6 +301,8 @@ export function TeamsAdminPanel({
           onClick={() => {
             setCreating(true);
             setEditingId(null);
+            setTeamEditError(null);
+            setCreateFormError(null);
           }}
           className="rounded-xl bg-[var(--accent)] px-5 py-3 text-sm font-semibold text-white shadow-md hover:brightness-110"
         >
@@ -291,7 +328,12 @@ export function TeamsAdminPanel({
                 : 10,
             })}
             submitLabel="Create"
-            onCancel={() => setCreating(false)}
+            inlineError={createFormError}
+            onClearInlineError={() => setCreateFormError(null)}
+            onCancel={() => {
+              setCreating(false);
+              setCreateFormError(null);
+            }}
             onSave={(input) => {
               startTransition(async () => {
                 const res = await createTeamAction({
@@ -299,13 +341,14 @@ export function TeamsAdminPanel({
                   nameOptions: input.nameOptions.filter(Boolean),
                 });
                 if (!res.ok) {
-                  setMessage(
+                  setCreateFormError(
                     res.error === "validation"
-                      ? "Check fields: name must be one of the three options."
-                      : "Unauthorized.",
+                      ? TEAM_NAME_RULE_MSG
+                      : "You are not signed in as an admin.",
                   );
                   return;
                 }
+                setCreateFormError(null);
                 setMessage("Team created.");
                 setCreating(false);
                 refresh();
@@ -339,6 +382,7 @@ export function TeamsAdminPanel({
                     className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm font-medium text-[var(--ink)]"
                     onClick={() => {
                       setCreating(false);
+                      setTeamEditError(null);
                       setEditingId(editingId === t.id ? null : t.id);
                     }}
                   >
@@ -362,6 +406,7 @@ export function TeamsAdminPanel({
                         }
                         setMessage("Team deleted.");
                         setEditingId(null);
+                        setTeamEditError(null);
                         refresh();
                       });
                     }}
@@ -374,7 +419,12 @@ export function TeamsAdminPanel({
                 <TeamForm
                   initial={toUpsert(t)}
                   submitLabel="Save changes"
-                  onCancel={() => setEditingId(null)}
+                  inlineError={teamEditError}
+                  onClearInlineError={() => setTeamEditError(null)}
+                  onCancel={() => {
+                    setEditingId(null);
+                    setTeamEditError(null);
+                  }}
                   onSave={(input) => {
                     startTransition(async () => {
                       const res = await updateTeamAction(t.id, {
@@ -382,13 +432,14 @@ export function TeamsAdminPanel({
                         nameOptions: input.nameOptions.filter(Boolean),
                       });
                       if (!res.ok) {
-                        setMessage(
+                        setTeamEditError(
                           res.error === "validation"
-                            ? "Validation failed."
-                            : "Unauthorized.",
+                            ? TEAM_NAME_RULE_MSG
+                            : "You are not signed in as an admin.",
                         );
                         return;
                       }
+                      setTeamEditError(null);
                       setMessage("Team updated.");
                       setEditingId(null);
                       refresh();

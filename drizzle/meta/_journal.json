@@ -36,6 +36,13 @@
       "when": 1774167603940,
       "tag": "0004_enrollments_team_id_idx",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774169790995,
+      "tag": "0005_common_eternity",
+      "breakpoints": true
     }
   ]
 }

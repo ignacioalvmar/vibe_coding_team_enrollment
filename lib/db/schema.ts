@@ -8,6 +8,7 @@ import {
   serial,
   text,
   timestamp,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -46,10 +47,16 @@ export const enrollments = pgTable(
       .notNull()
       .references(() => teams.id, { onDelete: "cascade" }),
     studentEmail: text("student_email").notNull().unique(),
+    /** 0-based seat within the team (capacity slots). */
+    seatIndex: integer("seat_index").notNull(),
     enrolledAt: timestamp("enrolled_at", { withTimezone: true }).defaultNow(),
   },
   (table) => ({
     teamIdIdx: index("enrollments_team_id_idx").on(table.teamId),
+    teamSeatUnique: uniqueIndex("enrollments_team_seat_unique").on(
+      table.teamId,
+      table.seatIndex,
+    ),
   }),
 );
 

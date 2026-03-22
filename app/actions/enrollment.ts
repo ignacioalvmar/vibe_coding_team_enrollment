@@ -11,11 +11,12 @@ import { revalidatePath } from "next/cache";
 export async function enrollInTeamAction(
   teamId: number,
   chosenName?: string | null,
+  seatIndex?: number | null,
 ) {
   const session = await auth();
   const email = session?.user?.email;
   if (!email) return { ok: false as const, error: "unauthorized" as const };
-  const outcome = await joinOrMoveTeam(teamId, email, chosenName);
+  const outcome = await joinOrMoveTeam(teamId, email, chosenName, seatIndex);
   if (outcome.ok) revalidatePath("/enroll");
   return outcome;
 }

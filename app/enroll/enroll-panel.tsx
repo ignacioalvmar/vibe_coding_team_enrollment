@@ -20,11 +20,17 @@ const CARD_EASE = "cubic-bezier(0.175, 0.885, 0.32, 1.275)";
 
 type Props = {
   teams: TeamWithEnrolled[];
-  current: { teamId: number; teamName: string } | null;
+  current: { teamId: number; teamName: string; seatIndex: number } | null;
   email: string;
   displayName: string | null;
+  firstName: string;
+  lastName: string;
   isAdmin: boolean;
 };
+
+function normalizeEmail(e: string) {
+  return e.trim().toLowerCase();
+}
 
 function fallbackImage(index: number) {
   const gradients = [
@@ -36,7 +42,15 @@ function fallbackImage(index: number) {
   return gradients[index % gradients.length];
 }
 
-export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Props) {
+export function EnrollPanel({
+  teams,
+  current,
+  email,
+  displayName,
+  firstName,
+  lastName,
+  isAdmin,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
@@ -61,11 +75,19 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
   }, [teams]);
 
   function joinErrorMessage(
-    err: "full" | "team_not_found" | "invalid_name" | "name_mismatch",
+    err:
+      | "full"
+      | "team_not_found"
+      | "invalid_name"
+      | "name_mismatch"
+      | "invalid_seat"
+      | "seat_taken",
   ) {
     if (err === "full") return "That team is full.";
     if (err === "team_not_found") return "Team not found.";
     if (err === "invalid_name") return "Pick a valid team name from the list.";
+    if (err === "invalid_seat") return "That seat is not valid for this team.";
+    if (err === "seat_taken") return "Someone just took that seat. Pick another.";
     return "That team name is locked. Match the current name or pick another team.";
   }
 
@@ -79,12 +101,16 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
         : (opts[0] ?? team.name);
   }
 
-  function onJoin(team: TeamWithEnrolled) {
+  function onJoin(team: TeamWithEnrolled, seatIndex?: number) {
     setNotice(null);
     setError(null);
     const choice = resolveChoice(team);
     startTransition(async () => {
-      const res = await enrollInTeamAction(team.id, choice);
+      const res = await enrollInTeamAction(
+        team.id,
+        choice,
+        seatIndex === undefined ? null : seatIndex,
+      );
       if (!res.ok && res.error === "unauthorized") {
         setError("Session expired. Sign in again.");
         return;
@@ -294,6 +320,7 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
             const accent = accentFor(team);
             const full = team.enrolled >= team.capacity;
             const isCurrent = current?.teamId === team.id;
+            const blockedForJoin = full && !isCurrent;
             const displayNo = String(
               regionIndex.get(team.id) ?? index + 1,
             ).padStart(2, "0");
@@ -313,7 +340,7 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
               <li
                 key={team.id}
                 className={`group flex flex-col overflow-hidden rounded-[2.5rem] border border-black/10 bg-white/80 shadow-sm backdrop-blur-xl transition-all duration-[400ms] dark:border-[var(--border)] dark:bg-[var(--card)]/90 ${
-                  full
+                  blockedForJoin
                     ? "pointer-events-none opacity-60 grayscale-[50%]"
                     : "hover:-translate-y-2 hover:border-black/20 hover:shadow-xl dark:hover:border-[var(--border)]"
                 }`}
@@ -398,19 +425,52 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
                     </p>
                     <div className="flex gap-2">
                       {Array.from({ length: team.capacity }, (_, i) => {
-                        const taken = i < team.enrolled;
+                        const member = team.members.find((m) => m.seatIndex === i);
+                        const isOpen = !member;
+                        const isMe =
+                          member &&
+                          normalizeEmail(member.studentEmail) ===
+                            normalizeEmail(email);
+                        const showFirst = isMe ? firstName || member.firstName : member?.firstName;
+                        const showLast = isMe ? lastName || member.lastName : member?.lastName;
+                        const canPickSlot = isOpen && !pending && !blockedForJoin;
                         return (
-                          <div
-                            key={i}
-                            className="h-10 flex-1 rounded-xl border border-slate-200 text-center text-xs font-medium leading-10 text-slate-600 transition-colors dark:border-[var(--border)] dark:text-[var(--muted)]"
-                            style={{
-                              borderColor: taken ? accent : undefined,
-                              backgroundColor: taken
-                                ? `${accent}18`
-                                : undefined,
-                            }}
-                          >
-                            {taken ? "Taken" : "Open"}
+                          <div key={i} className="min-w-0 flex-1">
+                            {isOpen ? (
+                              <button
+                                type="button"
+                                disabled={!canPickSlot}
+                                aria-label={`Reserve seat ${i + 1} on ${team.region ?? team.name}`}
+                                onClick={() => onJoin(team, i)}
+                                className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 px-1 py-1.5 text-center text-[10px] font-semibold uppercase tracking-wide text-slate-500 transition-colors hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-45 dark:border-[var(--border)] dark:text-[var(--muted)] dark:hover:bg-[var(--surface)]"
+                                style={
+                                  canPickSlot
+                                    ? {
+                                        borderColor: accent,
+                                        color: accent,
+                                      }
+                                    : undefined
+                                }
+                              >
+                                Open
+                              </button>
+                            ) : (
+                              <div
+                                className="flex min-h-[3.25rem] w-full flex-col items-center justify-center rounded-xl border px-1 py-1 text-center text-[11px] font-medium leading-tight text-slate-800 dark:text-[var(--ink)]"
+                                style={{
+                                  borderColor: accent,
+                                  backgroundColor: `${accent}18`,
+                                  boxShadow: isMe ? `0 0 0 2px ${accent}55` : undefined,
+                                }}
+                              >
+                                <span className="line-clamp-2 break-words">
+                                  {showFirst}
+                                </span>
+                                <span className="line-clamp-2 break-words">
+                                  {showLast}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -455,7 +515,7 @@ export function EnrollPanel({ teams, current, email, displayName, isAdmin }: Pro
 
                   <button
                     type="button"
-                    disabled={full || pending}
+                    disabled={blockedForJoin || pending}
                     onClick={() => onJoin(team)}
                     className={`w-full py-4 text-xs font-black uppercase tracking-widest transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
                       full

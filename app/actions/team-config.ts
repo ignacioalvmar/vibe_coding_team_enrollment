@@ -240,9 +240,25 @@ export async function moveStudentToTeamAction(
       return { ok: false as const, error: "full" as const };
     }
 
+    const takenRows = await tx
+      .select({ seatIndex: enrollments.seatIndex })
+      .from(enrollments)
+      .where(eq(enrollments.teamId, targetTeamId));
+    const taken = new Set(takenRows.map((r) => r.seatIndex));
+    let freeSeat: number | null = null;
+    for (let i = 0; i < target.capacity; i++) {
+      if (!taken.has(i)) {
+        freeSeat = i;
+        break;
+      }
+    }
+    if (freeSeat === null) {
+      return { ok: false as const, error: "full" as const };
+    }
+
     await tx
       .update(enrollments)
-      .set({ teamId: targetTeamId })
+      .set({ teamId: targetTeamId, seatIndex: freeSeat })
       .where(eq(enrollments.id, enrollment.id));
 
     return { ok: true as const };

@@ -1,6 +1,13 @@
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { enrollments, teams } from "@/lib/db/schema";
+import { enrollments, teams, users } from "@/lib/db/schema";
+
+export type SeatMember = {
+  seatIndex: number;
+  firstName: string;
+  lastName: string;
+  studentEmail: string;
+};
 
 export type TeamWithEnrolled = {
   id: number;
@@ -14,6 +21,7 @@ export type TeamWithEnrolled = {
   capacity: number;
   sortOrder: number;
   enrolled: number;
+  members: SeatMember[];
 };
 
 export type JoinOutcome =
@@ -24,25 +32,34 @@ export type JoinOutcome =
         | "full"
         | "team_not_found"
         | "invalid_name"
-        | "name_mismatch";
+        | "name_mismatch"
+        | "invalid_seat"
+        | "seat_taken";
     };
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
-/** SQLSTATE 57014 — statement timeout (e.g. cold DB); one retry after a short backoff */
-function postgresErrorCode(err: unknown): string | undefined {
-  if (err && typeof err === "object") {
-    const e = err as { code?: string; cause?: unknown };
-    if (typeof e.code === "string") return e.code;
-    const c = e.cause;
-    if (c && typeof c === "object" && "code" in c) {
-      const code = (c as { code?: string }).code;
-      if (typeof code === "string") return code;
+/** SQLSTATE from Postgres driver (may be nested under `cause`). */
+function pgErrorCode(err: unknown): string | undefined {
+  let cur: unknown = err;
+  for (let i = 0; i < 8 && cur; i++) {
+    if (typeof cur === "object" && cur && "code" in cur) {
+      const c = (cur as { code?: unknown }).code;
+      if (typeof c === "string") return c;
     }
+    cur =
+      typeof cur === "object" && cur && "cause" in cur
+        ? (cur as { cause: unknown }).cause
+        : undefined;
   }
   return undefined;
+}
+
+/** SQLSTATE 57014 — statement timeout (e.g. cold DB); one retry after a short backoff */
+function postgresErrorCode(err: unknown): string | undefined {
+  return pgErrorCode(err);
 }
 
 async function withStatementTimeoutRetry<T>(run: () => Promise<T>): Promise<T> {
@@ -79,7 +96,7 @@ export async function listTeamsWithEnrolled(): Promise<TeamWithEnrolled[]> {
       .groupBy(teams.id)
       .orderBy(teams.sortOrder, teams.id),
   );
-  return rows.map((r) => ({
+  const teamRows = rows.map((r) => ({
     id: r.id,
     name: r.name,
     description: r.description,
@@ -92,24 +109,62 @@ export async function listTeamsWithEnrolled(): Promise<TeamWithEnrolled[]> {
     sortOrder: r.sortOrder,
     enrolled: Number(r.enrolled),
   }));
+
+  const memberRows = await withStatementTimeoutRetry(() =>
+    db
+      .select({
+        teamId: enrollments.teamId,
+        seatIndex: enrollments.seatIndex,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        studentEmail: enrollments.studentEmail,
+      })
+      .from(enrollments)
+      .leftJoin(users, eq(users.email, enrollments.studentEmail))
+      .orderBy(enrollments.teamId, enrollments.seatIndex),
+  );
+
+  const membersByTeam = new Map<number, SeatMember[]>();
+  for (const m of memberRows) {
+    const list = membersByTeam.get(m.teamId) ?? [];
+    list.push({
+      seatIndex: m.seatIndex,
+      firstName: m.firstName?.trim() || "—",
+      lastName: m.lastName?.trim() || "—",
+      studentEmail: m.studentEmail,
+    });
+    membersByTeam.set(m.teamId, list);
+  }
+
+  return teamRows.map((t) => ({
+    ...t,
+    members: membersByTeam.get(t.id) ?? [],
+  }));
 }
 
 export async function getEnrollmentForStudent(
   studentEmail: string,
-): Promise<{ teamId: number; teamName: string } | null> {
+): Promise<{ teamId: number; teamName: string; seatIndex: number } | null> {
   const db = getDb();
   const email = normalizeEmail(studentEmail);
   const rows = await db
     .select({
       teamId: enrollments.teamId,
       teamName: teams.name,
+      seatIndex: enrollments.seatIndex,
     })
     .from(enrollments)
     .innerJoin(teams, eq(enrollments.teamId, teams.id))
     .where(eq(enrollments.studentEmail, email))
     .limit(1);
   const row = rows[0];
-  return row ? { teamId: row.teamId, teamName: row.teamName } : null;
+  return row
+    ? {
+        teamId: row.teamId,
+        teamName: row.teamName,
+        seatIndex: row.seatIndex,
+      }
+    : null;
 }
 
 async function resolveTeamNameForJoin(
@@ -167,6 +222,7 @@ export async function joinOrMoveTeam(
   teamId: number,
   studentEmail: string,
   chosenName?: string | null,
+  seatIndexArg?: number | null,
 ): Promise<JoinOutcome> {
   const db = getDb();
   const email = normalizeEmail(studentEmail);
@@ -174,12 +230,12 @@ export async function joinOrMoveTeam(
   return db.transaction(async (tx) => {
     await tx.execute(sql`SELECT id FROM teams WHERE id = ${teamId} FOR UPDATE`);
 
-    const teamRows = await tx
-      .select({ id: teams.id })
+    const [teamRow] = await tx
+      .select({ id: teams.id, capacity: teams.capacity })
       .from(teams)
       .where(eq(teams.id, teamId))
       .limit(1);
-    if (!teamRows.length) {
+    if (!teamRow) {
       return { ok: false, error: "team_not_found" };
     }
 
@@ -188,49 +244,119 @@ export async function joinOrMoveTeam(
       return nameRes;
     }
 
-    const inserted = await tx.execute<{ id: number }>(sql`
-      INSERT INTO enrollments (team_id, student_email)
-      SELECT ${teamId}, ${email}
-      FROM teams t
-      WHERE t.id = ${teamId}
-        AND NOT EXISTS (
-          SELECT 1 FROM enrollments WHERE student_email = ${email}
-        )
-        AND (
-          SELECT COUNT(*)::int FROM enrollments e WHERE e.team_id = ${teamId}
-        ) < t.capacity
-      RETURNING id
-    `);
-    if (inserted.length > 0) {
-      return { ok: true, kind: "joined" };
-    }
-
     const [current] = await tx
-      .select({ teamId: enrollments.teamId })
+      .select({
+        teamId: enrollments.teamId,
+        seatIndex: enrollments.seatIndex,
+      })
       .from(enrollments)
       .where(eq(enrollments.studentEmail, email))
       .limit(1);
-    if (current?.teamId === teamId) {
-      return { ok: true, kind: "unchanged" };
+
+    let seatIndex: number;
+    if (seatIndexArg === undefined || seatIndexArg === null) {
+      const seatRows = await tx
+        .select({ seatIndex: enrollments.seatIndex })
+        .from(enrollments)
+        .where(eq(enrollments.teamId, teamId));
+      const takenSeats = new Set(seatRows.map((r) => r.seatIndex));
+      let first: number | null = null;
+      for (let i = 0; i < teamRow.capacity; i++) {
+        if (!takenSeats.has(i)) {
+          first = i;
+          break;
+        }
+      }
+      if (first === null) {
+        return { ok: false, error: "full" };
+      }
+      seatIndex = first;
+    } else {
+      seatIndex = Math.floor(seatIndexArg);
+      if (seatIndex < 0 || seatIndex >= teamRow.capacity) {
+        return { ok: false, error: "invalid_seat" };
+      }
     }
 
-    const updated = await tx.execute<{ id: number }>(sql`
-      UPDATE enrollments e
-      SET team_id = ${teamId}
-      FROM teams t
-      WHERE e.student_email = ${email}
-        AND t.id = ${teamId}
-        AND e.team_id <> ${teamId}
-        AND (
-          SELECT COUNT(*)::int FROM enrollments e2 WHERE e2.team_id = ${teamId}
-        ) < t.capacity
-      RETURNING e.id
-    `);
-    if (updated.length > 0) {
+    const [occupant] = await tx
+      .select({ studentEmail: enrollments.studentEmail })
+      .from(enrollments)
+      .where(
+        and(
+          eq(enrollments.teamId, teamId),
+          eq(enrollments.seatIndex, seatIndex),
+        ),
+      )
+      .limit(1);
+
+    if (occupant && occupant.studentEmail !== email) {
+      return { ok: false, error: "seat_taken" };
+    }
+
+    if (!current) {
+      const [cntRow] = await tx
+        .select({ c: count() })
+        .from(enrollments)
+        .where(eq(enrollments.teamId, teamId));
+      const onTeam = Number(cntRow?.c ?? 0);
+      if (onTeam >= teamRow.capacity) {
+        return { ok: false, error: "full" };
+      }
+      try {
+        await tx.insert(enrollments).values({
+          teamId,
+          studentEmail: email,
+          seatIndex,
+        });
+      } catch (err) {
+        if (pgErrorCode(err) === "23505") {
+          return { ok: false, error: "seat_taken" };
+        }
+        throw err;
+      }
+      return { ok: true, kind: "joined" };
+    }
+
+    if (current.teamId === teamId) {
+      if (current.seatIndex === seatIndex) {
+        return { ok: true, kind: "unchanged" };
+      }
+      try {
+        await tx
+          .update(enrollments)
+          .set({ seatIndex })
+          .where(eq(enrollments.studentEmail, email));
+      } catch (err) {
+        if (pgErrorCode(err) === "23505") {
+          return { ok: false, error: "seat_taken" };
+        }
+        throw err;
+      }
       return { ok: true, kind: "moved" };
     }
 
-    return { ok: false, error: "full" };
+    const [cntRow] = await tx
+      .select({ c: count() })
+      .from(enrollments)
+      .where(eq(enrollments.teamId, teamId));
+    const onTarget = Number(cntRow?.c ?? 0);
+    if (onTarget >= teamRow.capacity) {
+      return { ok: false, error: "full" };
+    }
+
+    try {
+      await tx
+        .update(enrollments)
+        .set({ teamId, seatIndex })
+        .where(eq(enrollments.studentEmail, email));
+    } catch (err) {
+      if (pgErrorCode(err) === "23505") {
+        return { ok: false, error: "seat_taken" };
+      }
+      throw err;
+    }
+
+    return { ok: true, kind: "moved" };
   });
 }
 

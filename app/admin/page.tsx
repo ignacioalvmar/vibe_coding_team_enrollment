@@ -111,6 +111,12 @@ export default function AdminExportPage() {
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            href="/admin/teams"
+            className="rounded-xl border border-[var(--border)] px-5 py-3 text-sm font-semibold text-[var(--ink)] hover:bg-[var(--surface)]"
+          >
+            Team configuration
+          </Link>
           <button
             type="button"
             onClick={() => void download()}

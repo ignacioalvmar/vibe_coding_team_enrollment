@@ -1,6 +1,8 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   integer,
+  jsonb,
   pgTable,
   serial,
   text,
@@ -22,6 +24,14 @@ export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   description: text("description"),
+  region: text("region"),
+  vibe: text("vibe"),
+  accent: text("accent"),
+  imageUrl: text("image_url"),
+  nameOptions: jsonb("name_options")
+    .$type<string[]>()
+    .notNull()
+    .default(sql`'[]'::jsonb`),
   capacity: integer("capacity").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),

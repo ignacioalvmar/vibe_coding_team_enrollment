@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import { eq } from "drizzle-orm";
 import * as schema from "../lib/db/schema";
+import { COASTAL_SEED_TEAMS } from "../lib/seed-teams";
 
 const envPath = join(process.cwd(), ".env");
 let urlFromFile: string | undefined;
@@ -14,7 +15,6 @@ try {
   urlFromFile = undefined;
 }
 const inheritedUrl = process.env.DATABASE_URL;
-/** Same rule as drizzle-kit: existing `DATABASE_URL` wins; dotenv does not override by default. */
 if (
   urlFromFile &&
   inheritedUrl !== undefined &&
@@ -43,56 +43,22 @@ const queryClient = postgres(url, { prepare: false, max: 1 });
 const db = drizzle(queryClient, { schema });
 const { teams } = schema;
 
-const seedTeams = [
-  {
-    name: "Team Aurora",
-    description: "Interface crafts & speculative prototypes.",
-    capacity: 3,
-    sortOrder: 10,
-  },
-  {
-    name: "Team Meridian",
-    description: "Research-through-design & storytelling.",
-    capacity: 3,
-    sortOrder: 20,
-  },
-  {
-    name: "Team Lumen",
-    description: "Design systems & component quality.",
-    capacity: 3,
-    sortOrder: 30,
-  },
-  {
-    name: "Team Drift",
-    description: "Fieldwork, service touchpoints, journey maps.",
-    capacity: 3,
-    sortOrder: 40,
-  },
-  {
-    name: "Team Alloy",
-    description: "Cross-device UX, motion, micro-interactions.",
-    capacity: 3,
-    sortOrder: 50,
-  },
-  {
-    name: "Team Harbor",
-    description: "Calm tech, ethics, and inclusive flows.",
-    capacity: 3,
-    sortOrder: 60,
-  },
-];
-
 async function main() {
-  for (const t of seedTeams) {
+  for (const t of COASTAL_SEED_TEAMS) {
     const existing = await db
       .select({ id: teams.id })
       .from(teams)
-      .where(eq(teams.name, t.name))
+      .where(eq(teams.sortOrder, t.sortOrder))
       .limit(1);
     if (existing.length) continue;
     await db.insert(teams).values({
       name: t.name,
       description: t.description,
+      region: t.region,
+      vibe: t.vibe,
+      accent: t.accent,
+      imageUrl: t.imageUrl,
+      nameOptions: t.nameOptions,
       capacity: t.capacity,
       sortOrder: t.sortOrder,
     });
@@ -115,6 +81,11 @@ main()
     if (pgCode === "42P01") {
       console.error(
         '\nTable or schema missing (42P01). Apply the Drizzle schema first: npm run db:push',
+      );
+    }
+    if (pgCode === "42703") {
+      console.error(
+        "\nColumn missing (42703). Run migrations: npm run db:push",
       );
     }
     console.error(err);

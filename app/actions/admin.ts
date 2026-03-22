@@ -3,17 +3,10 @@
 import { auth } from "@/auth";
 import { grantAdminForUser } from "@/lib/users";
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db";
 import { teams } from "@/lib/db/schema";
-
-const SEED_TEAMS = [
-  { name: "Team Aurora", description: "Interface crafts & speculative prototypes.", capacity: 3, sortOrder: 10 },
-  { name: "Team Meridian", description: "Research-through-design & storytelling.", capacity: 3, sortOrder: 20 },
-  { name: "Team Lumen", description: "Design systems & component quality.", capacity: 3, sortOrder: 30 },
-  { name: "Team Drift", description: "Fieldwork, service touchpoints, journey maps.", capacity: 3, sortOrder: 40 },
-  { name: "Team Alloy", description: "Cross-device UX, motion, micro-interactions.", capacity: 3, sortOrder: 50 },
-  { name: "Team Harbor", description: "Calm tech, ethics, and inclusive flows.", capacity: 3, sortOrder: 60 },
-];
+import { COASTAL_SEED_TEAMS } from "@/lib/seed-teams";
 
 export async function seedTeamsAction(): Promise<
   | { ok: true; inserted: number; skipped: number }
@@ -26,18 +19,32 @@ export async function seedTeamsAction(): Promise<
   const db = getDb();
   let inserted = 0;
   let skipped = 0;
-  for (const t of SEED_TEAMS) {
+  for (const t of COASTAL_SEED_TEAMS) {
     const existing = await db
       .select({ id: teams.id })
       .from(teams)
-      .where(eq(teams.name, t.name))
+      .where(eq(teams.sortOrder, t.sortOrder))
       .limit(1);
     if (existing.length) {
       skipped++;
       continue;
     }
-    await db.insert(teams).values(t);
+    await db.insert(teams).values({
+      name: t.name,
+      description: t.description,
+      region: t.region,
+      vibe: t.vibe,
+      accent: t.accent,
+      imageUrl: t.imageUrl,
+      nameOptions: t.nameOptions,
+      capacity: t.capacity,
+      sortOrder: t.sortOrder,
+    });
     inserted++;
+  }
+  if (inserted > 0) {
+    revalidatePath("/enroll");
+    revalidatePath("/admin/teams");
   }
   return { ok: true, inserted, skipped };
 }

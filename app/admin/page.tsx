@@ -107,7 +107,8 @@ export default function AdminExportPage() {
           Export enrollments
         </h1>
         <p className="mt-3 text-pretty text-[var(--muted)]">
-          Download the roster as CSV (team, student email, enrolled time).
+          Download the roster as CSV (one row per seat: team, region, vibe, names,
+          and email; empty seats use the word open in the student columns).
         </p>
 
         <div className="mt-8 flex flex-wrap gap-3">

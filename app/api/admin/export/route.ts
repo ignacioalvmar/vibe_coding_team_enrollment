@@ -1,5 +1,5 @@
 import { auth } from "@/auth";
-import { listEnrollmentsForExport } from "@/lib/enrollment";
+import { listSeatRowsForExport } from "@/lib/enrollment";
 import { getUserById } from "@/lib/users";
 import { NextResponse } from "next/server";
 
@@ -23,14 +23,19 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const rows = await listEnrollmentsForExport();
-  const header = "team_id,team_name,student_email,enrolled_at";
+  const rows = await listSeatRowsForExport();
+  const header =
+    "team_id,region,music_vibe,team_name,first_name,last_name,student_email,seat_number";
   const lines = rows.map((r) =>
     [
       String(r.teamId),
+      escapeCsvField(r.region),
+      escapeCsvField(r.musicVibe),
       escapeCsvField(r.teamName),
+      escapeCsvField(r.firstName),
+      escapeCsvField(r.lastName),
       escapeCsvField(r.studentEmail),
-      r.enrolledAt ? r.enrolledAt.toISOString() : "",
+      String(r.seatNumber),
     ].join(","),
   );
   const csv = [header, ...lines].join("\n");

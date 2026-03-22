@@ -1,8 +1,12 @@
 import { auth } from "@/auth";
+import { Inter, Syne } from "next/font/google";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EmailSignInForm } from "@/app/email-sign-in-form";
+
+const inter = Inter({ subsets: ["latin"] });
+const syne = Syne({ subsets: ["latin"], weight: ["700", "800"] });
 
 const cards: { title: string; body: ReactNode }[] = [
   {
@@ -20,7 +24,7 @@ const cards: { title: string; body: ReactNode }[] = [
         Course staff sign in, then open the{" "}
         <Link
           href="/admin"
-          className="font-semibold text-[var(--accent)] underline-offset-4 hover:underline"
+          className="font-semibold text-slate-900 underline-offset-4 hover:text-cyan-600 hover:underline dark:text-[var(--accent)] dark:hover:text-[var(--accent)]"
         >
           admin page
         </Link>{" "}
@@ -35,45 +39,47 @@ export default async function Home() {
   if (session?.user?.email) redirect("/enroll");
 
   return (
-    <main className="relative flex flex-1 flex-col">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div className="absolute -left-32 top-20 h-72 w-72 rounded-full bg-[var(--glow)] blur-3xl" />
-        <div className="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-[var(--glow-2)] blur-3xl" />
-      </div>
-
-      <section className="relative mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center px-6 py-16 sm:py-24">
-        <p className="text-sm font-medium uppercase tracking-[0.25em] text-[var(--muted)]">
-          UXD · Vibe coding
-        </p>
-        <h1 className="mt-5 max-w-2xl font-serif text-4xl font-semibold leading-tight text-[var(--ink)] sm:text-5xl">
-          Team Enrollment
-        </h1>
-        <p className="mt-6 max-w-xl text-pretty text-lg text-[var(--muted)]">
-          Create an account with your @thi.de email.
-          Log in to enroll in a team for semester assignments and final project.
-          Three seats per team.
-        </p>
+    <main
+      className={`relative flex min-h-full flex-1 flex-col bg-slate-100 text-slate-900 dark:bg-[var(--background)] dark:text-[var(--ink)] ${inter.className}`}
+    >
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 py-8 sm:px-8 sm:py-12 md:px-8">
+        <header className="pt-4">
+          <h1
+            className={`bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-[36px] font-extrabold tracking-tighter text-transparent ${syne.className}`}
+          >
+            UXD Vibecoding · SS26
+          </h1>
+          <p className="mt-2 text-xs font-medium uppercase tracking-widest text-slate-500 dark:text-[var(--muted)]">
+            Team enrollment portal
+          </p>
+          <p className="mt-6 max-w-xl text-pretty text-lg text-slate-600 dark:text-[var(--muted)]">
+            Create an account with your @thi.de email. Log in to enroll in a team
+            for semester assignments and final project. Three seats per team.
+          </p>
+        </header>
 
         <div className="mt-10 flex flex-col gap-4">
           <EmailSignInForm />
         </div>
 
-        <div className="mt-16 grid gap-4 sm:grid-cols-3">
+        <div className="mt-16 grid gap-6 sm:grid-cols-3">
           {cards.map((card) => (
             <div
               key={card.title}
-              className="rounded-2xl border border-[var(--border)] bg-[var(--card)]/90 p-5 shadow-sm backdrop-blur"
+              className="rounded-[2.5rem] border border-black/10 bg-white/80 p-6 shadow-sm backdrop-blur-xl dark:border-[var(--border)] dark:bg-[var(--card)]/90"
             >
-              <h2 className="font-serif text-lg font-semibold text-[var(--ink)]">
+              <h2
+                className={`text-lg font-semibold text-slate-900 dark:text-[var(--ink)] ${syne.className}`}
+              >
                 {card.title}
               </h2>
-              <div className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+              <div className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-[var(--muted)]">
                 {card.body}
               </div>
             </div>
           ))}
         </div>
-      </section>
+      </div>
     </main>
   );
 }

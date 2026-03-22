@@ -24,6 +24,17 @@ export type TeamWithEnrolled = {
   members: SeatMember[];
 };
 
+export type SeatExportRow = {
+  teamId: number;
+  region: string;
+  musicVibe: string;
+  teamName: string;
+  firstName: string;
+  lastName: string;
+  studentEmail: string;
+  seatNumber: number;
+};
+
 export type JoinOutcome =
   | { ok: true; kind: "joined" | "moved" | "unchanged" }
   | {
@@ -415,16 +426,78 @@ export async function leaveTeam(studentEmail: string): Promise<boolean> {
   return deleted.length > 0;
 }
 
-export async function listEnrollmentsForExport() {
+/** One row per seat: filled from enrollments + users, or `open` for empty seats. */
+export async function listSeatRowsForExport(): Promise<SeatExportRow[]> {
   const db = getDb();
-  return db
-    .select({
-      teamId: teams.id,
-      teamName: teams.name,
-      studentEmail: enrollments.studentEmail,
-      enrolledAt: enrollments.enrolledAt,
-    })
-    .from(enrollments)
-    .innerJoin(teams, eq(enrollments.teamId, teams.id))
-    .orderBy(teams.sortOrder, teams.id, enrollments.studentEmail);
+  const teamRows = await withStatementTimeoutRetry(() =>
+    db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        region: teams.region,
+        vibe: teams.vibe,
+        capacity: teams.capacity,
+      })
+      .from(teams)
+      .orderBy(teams.sortOrder, teams.id),
+  );
+
+  const memberRows = await withStatementTimeoutRetry(() =>
+    db
+      .select({
+        teamId: enrollments.teamId,
+        seatIndex: enrollments.seatIndex,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        studentEmail: enrollments.studentEmail,
+      })
+      .from(enrollments)
+      .leftJoin(users, eq(users.email, enrollments.studentEmail))
+      .orderBy(enrollments.teamId, enrollments.seatIndex),
+  );
+
+  const byTeamSeat = new Map<
+    number,
+    Map<number, { firstName: string; lastName: string; studentEmail: string }>
+  >();
+  for (const m of memberRows) {
+    const inner = byTeamSeat.get(m.teamId) ?? new Map();
+    inner.set(m.seatIndex, {
+      firstName: m.firstName?.trim() ?? "",
+      lastName: m.lastName?.trim() ?? "",
+      studentEmail: m.studentEmail,
+    });
+    byTeamSeat.set(m.teamId, inner);
+  }
+
+  const out: SeatExportRow[] = [];
+  for (const t of teamRows) {
+    const seats = byTeamSeat.get(t.id);
+    for (let i = 0; i < t.capacity; i++) {
+      const occ = seats?.get(i);
+      const base = {
+        teamId: t.id,
+        region: t.region ?? "",
+        musicVibe: t.vibe ?? "",
+        teamName: t.name,
+        seatNumber: i + 1,
+      };
+      if (occ) {
+        out.push({
+          ...base,
+          firstName: occ.firstName,
+          lastName: occ.lastName,
+          studentEmail: occ.studentEmail,
+        });
+      } else {
+        out.push({
+          ...base,
+          firstName: "open",
+          lastName: "open",
+          studentEmail: "open",
+        });
+      }
+    }
+  }
+  return out;
 }

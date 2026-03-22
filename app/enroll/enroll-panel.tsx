@@ -55,6 +55,9 @@ export function EnrollPanel({
   const [pending, startTransition] = useTransition();
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [exportDownloadState, setExportDownloadState] = useState<
+    "idle" | "loading" | "error"
+  >("idle");
   const [selectedName, setSelectedName] = useState<Record<number, string>>({});
 
   useEffect(() => {
@@ -89,6 +92,36 @@ export function EnrollPanel({
     if (err === "invalid_seat") return "That seat is not valid for this team.";
     if (err === "seat_taken") return "Someone just took that seat. Pick another.";
     return "That team name is locked. Match the current name or pick another team.";
+  }
+
+  async function downloadExport() {
+    setExportDownloadState("loading");
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/export", { credentials: "include" });
+      if (!res.ok) {
+        setExportDownloadState("error");
+        setError(
+          res.status === 401
+            ? "Not signed in."
+            : res.status === 403
+              ? "You need admin access to export."
+              : "Export failed.",
+        );
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "team-enrollments.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportDownloadState("idle");
+    } catch {
+      setExportDownloadState("error");
+      setError("Network error.");
+    }
   }
 
   function resolveChoice(team: TeamWithEnrolled) {
@@ -222,12 +255,14 @@ export function EnrollPanel({
             <div className="flex flex-wrap justify-center gap-3 md:justify-end">
               {isAdmin ? (
                 <>
-                  <Link
-                    href="/admin"
-                    className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition hover:bg-cyan-600"
+                  <button
+                    type="button"
+                    onClick={() => void downloadExport()}
+                    disabled={exportDownloadState === "loading"}
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-slate-900/20 transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Export teams
-                  </Link>
+                    {exportDownloadState === "loading" ? "Preparing…" : "Export teams"}
+                  </button>
                   <Link
                     href="/admin/teams"
                     className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-[var(--border)] dark:bg-[var(--card)] dark:text-[var(--ink)] dark:hover:bg-[var(--surface)]"

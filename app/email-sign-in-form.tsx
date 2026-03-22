@@ -90,10 +90,13 @@ export function EmailSignInForm() {
     }
   }
 
+  const inputClass =
+    "w-full rounded-2xl border border-slate-200 bg-slate-100 px-5 py-3.5 text-slate-900 shadow-sm outline-none ring-slate-400 transition focus:ring-2 dark:border-[var(--border)] dark:bg-[var(--surface)] dark:text-[var(--ink)] dark:ring-[var(--accent)]";
+
   return (
     <div className="flex w-full max-w-md flex-col gap-4">
       <div
-        className="flex rounded-2xl border border-[var(--border)] bg-[var(--card)] p-1 shadow-sm"
+        className="flex rounded-full border border-slate-200 bg-white p-1 shadow-sm dark:border-[var(--border)] dark:bg-[var(--card)]"
         role="tablist"
         aria-label="Account mode"
       >
@@ -105,10 +108,10 @@ export function EmailSignInForm() {
             setMode("register");
             setError(null);
           }}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+          className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold transition ${
             mode === "register"
-              ? "bg-[var(--accent)] text-white"
-              : "text-[var(--muted)] hover:text-[var(--ink)]"
+              ? "bg-slate-950 text-white shadow-md shadow-slate-900/20"
+              : "text-slate-500 hover:text-slate-900 dark:text-[var(--muted)] dark:hover:text-[var(--ink)]"
           }`}
         >
           Create account
@@ -121,10 +124,10 @@ export function EmailSignInForm() {
             setMode("signin");
             setError(null);
           }}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+          className={`flex-1 rounded-full px-4 py-2.5 text-sm font-bold transition ${
             mode === "signin"
-              ? "bg-[var(--accent)] text-white"
-              : "text-[var(--muted)] hover:text-[var(--ink)]"
+              ? "bg-slate-950 text-white shadow-md shadow-slate-900/20"
+              : "text-slate-500 hover:text-slate-900 dark:text-[var(--muted)] dark:hover:text-[var(--ink)]"
           }`}
         >
           Sign in
@@ -137,7 +140,7 @@ export function EmailSignInForm() {
             <div>
               <label
                 htmlFor="first-name"
-                className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--muted)]"
+                className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-[var(--muted)]"
               >
                 First name
               </label>
@@ -149,14 +152,14 @@ export function EmailSignInForm() {
                 placeholder="Alex"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-3.5 text-[var(--ink)] shadow-sm outline-none ring-[var(--accent)] transition focus:ring-2"
+                className={inputClass}
                 required
               />
             </div>
             <div>
               <label
                 htmlFor="last-name"
-                className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--muted)]"
+                className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-[var(--muted)]"
               >
                 Last name
               </label>
@@ -168,7 +171,7 @@ export function EmailSignInForm() {
                 placeholder="Müller"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-3.5 text-[var(--ink)] shadow-sm outline-none ring-[var(--accent)] transition focus:ring-2"
+                className={inputClass}
                 required
               />
             </div>
@@ -178,7 +181,7 @@ export function EmailSignInForm() {
         <div>
           <label
             htmlFor="thi-email"
-            className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--muted)]"
+            className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-[var(--muted)]"
           >
             THI email
           </label>
@@ -190,7 +193,7 @@ export function EmailSignInForm() {
             placeholder="you@thi.de"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-3.5 text-[var(--ink)] shadow-sm outline-none ring-[var(--accent)] transition focus:ring-2"
+            className={inputClass}
             required
           />
         </div>
@@ -198,7 +201,7 @@ export function EmailSignInForm() {
         <div>
           <label
             htmlFor="account-password"
-            className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--muted)]"
+            className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-[var(--muted)]"
           >
             Password
           </label>
@@ -212,7 +215,7 @@ export function EmailSignInForm() {
             placeholder={mode === "register" ? "At least 8 characters" : "••••••••"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-3.5 text-[var(--ink)] shadow-sm outline-none ring-[var(--accent)] transition focus:ring-2"
+            className={inputClass}
             required
             minLength={mode === "register" ? 8 : undefined}
           />
@@ -222,7 +225,7 @@ export function EmailSignInForm() {
           <div>
             <label
               htmlFor="confirm-password"
-              className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--muted)]"
+              className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-[var(--muted)]"
             >
               Confirm password
             </label>
@@ -234,7 +237,7 @@ export function EmailSignInForm() {
               placeholder="Repeat password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full rounded-2xl border border-[var(--border)] bg-[var(--card)] px-5 py-3.5 text-[var(--ink)] shadow-sm outline-none ring-[var(--accent)] transition focus:ring-2"
+              className={inputClass}
               required
               minLength={8}
             />
@@ -244,7 +247,7 @@ export function EmailSignInForm() {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-2xl bg-[var(--accent)] px-8 py-4 text-base font-semibold text-white shadow-lg transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-full bg-slate-950 px-8 py-4 text-base font-bold text-white shadow-lg shadow-slate-900/20 transition hover:bg-cyan-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:hover:bg-cyan-600"
         >
           {pending
             ? "Working…"
@@ -253,7 +256,10 @@ export function EmailSignInForm() {
               : "Sign in"}
         </button>
         {error ? (
-          <p className="text-sm text-red-600 dark:text-red-400" role="alert">
+          <p
+            className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-100"
+            role="alert"
+          >
             {error}
           </p>
         ) : null}
